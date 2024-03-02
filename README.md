@@ -43,11 +43,10 @@ OutputOptions: {
     saveAsCSV: false
 }
 ```
+Set `saveAsJSON` to `true` if you want to save the output as JSON, and `saveAsCSV` to `true` if you want to save it as CSV.
 
 Additionally if you want some specific numbers of cars to scrape, Suppose for testing purpose you want to crawl only one car data. Then put this value to 1
 if its CrawlNumberOfItems: null then it will crawl every cars available on the website.
 ```
 CrawlNumberOfItems: 1
 ```
-
-Set `saveAsJSON` to `true` if you want to save the output as JSON, and `saveAsCSV` to `true` if you want to save it as CSV.
