@@ -101,10 +101,8 @@ class PaginationCrawler {
     }
 
     async crawlPaginatedList() {
-        // Implement pagination here later
         let urls = await this.getURLs()
         const newRecords = []
-        urls = urls.slice(0, 1) // remove this later
         for (const url of urls) {
             const data = await this.crawlPage(url, this.Selectors);
             newRecords.push(data);
@@ -114,10 +112,34 @@ class PaginationCrawler {
     }
 
     async getURLs() {
-        const links = await this.ActivePage.$$eval('.jet-listing-grid__item a', anchors => {
-            return anchors.map(anchor => anchor.href);
-        });
-        return links
+        let page = 1
+        const allUrls = []
+        while (true) {
+            const links = await this.ActivePage.$$eval(this.Selectors.listElements, anchors => {
+                return anchors.map(anchor => anchor.href);
+            });
+            allUrls.push(...links)
+            if (await this.ActivePage.$(this.Selectors.nextButton)) {
+                await this.ActivePage.click(this.Selectors.nextButton)
+                await this.waitForPageUpdate(this.Selectors.currentPage, page)
+                page++
+            } else {
+                break;
+            }
+        }
+        return allUrls
+    }
+
+    async waitForPageUpdate(selector, currentPage) {
+        await this.ActivePage.waitForFunction(
+            (selector, currentPage) => {
+                const currentPageElement = document.querySelector(selector);
+                return currentPageElement && parseInt(currentPageElement.getAttribute('data-value')) > currentPage;
+            },
+            { timeout: 30000 },
+            selector,
+            currentPage
+        );
     }
 
     async crawlPage(url, selectors) {
@@ -129,12 +151,12 @@ class PaginationCrawler {
     }
 
     async individualListingParser($, selectors, url) {
-        const noRedemptionPricedata = await this.individualPriceParser()
-        const noRedemptionPriceWithTaxData = await this.individualPriceParser(true)
+        const noRedemptionPricedata = await this.individualPriceParser(selectors)
+        const noRedemptionPriceWithTaxData = await this.individualPriceParser(selectors, true)
         const noRedemptionMergedData = await this.mergeArrays(noRedemptionPricedata, noRedemptionPriceWithTaxData);
 
-        const redemptionPricedata = await this.individualPriceParser(false, true)
-        const redemptionPriceWithTaxData = await this.individualPriceParser(true, true)
+        const redemptionPricedata = await this.individualPriceParser(selectors, false, true)
+        const redemptionPriceWithTaxData = await this.individualPriceParser(selectors, true, true)
         const redemptionMergedData = await this.mergeArrays(redemptionPricedata, redemptionPriceWithTaxData, true);
 
         const data = {
@@ -157,27 +179,24 @@ class PaginationCrawler {
         return this.sanitizeEntry(data);
     }
 
-    async individualPriceParser(vat = false, redemption = false) {
+    async individualPriceParser(selectors, vat = false, redemption = false) {
         const combinations = await this.createCombinations(redemption)
         const newRecords = []
-        let i = 0 // Remove this later
 
-        await this.ActivePage.evaluate((vat, redemption) => {
-            if (vat) document.querySelector('input[name="fieldname9_1"]').click()
+        await this.ActivePage.evaluate((vat, redemption, selectors) => {
+            if (vat) document.querySelector(selectors.vatbutton).click()
             if (
                 redemption &&
-                document.querySelector('[name="fieldname43_1"]').getAttribute('class').includes('ignore')
+                document.querySelector(selectors.acquisitionButton).getAttribute('class').includes('ignore')
             )
-                document.querySelector('input[name="fieldname37_1"]').click()
-        }, vat, redemption)
+                document.querySelector(selectors.redemptionTab).click()
+        }, vat, redemption, selectors)
 
-        // Print all combinations
         for (const combination of combinations) {
-            if (i > 0) break;  // Remove this later
 
-            let initialPriceValue = await this.ActivePage.$eval('#fieldname1_1', element => element.value);
+            let initialPriceValue = await this.ActivePage.$eval(selectors.price, element => element.value);
 
-            await this.ActivePage.evaluate(async (duration, mileage, advancePayment, acquisition, redemption) => {
+            await this.ActivePage.evaluate(async (duration, mileage, advancePayment, acquisition, redemption, selectors) => {
                 const setElementValue = async (elementId, elementValue) => {
                     const element = document.getElementById(elementId);
                     if (element) {
@@ -188,15 +207,15 @@ class PaginationCrawler {
                     }
                 };
 
-                await setElementValue('fieldname11_1', duration);
-                await setElementValue('fieldname12_1', mileage)
-                await setElementValue('fieldname16_1', advancePayment)
+                await setElementValue(selectors.duration, duration);
+                await setElementValue(selectors.mileage, mileage)
+                await setElementValue(selectors.advancePayment, advancePayment)
                 if (redemption) {
-                    await setElementValue('fieldname44_1', acquisition)
+                    await setElementValue(selectors.acquisitionValue, acquisition)
                 }
-            }, combination[0], combination[1], combination[2], combination[3], redemption)
+            }, combination[0], combination[1], combination[2], combination[3], redemption, selectors)
 
-            let afterUpdateValue = await this.ActivePage.$eval('#fieldname1_1', element => element.value);
+            let afterUpdateValue = await this.ActivePage.$eval(selectors.price, element => element.value);
 
             const startTime = Date.now();
             while (initialPriceValue === afterUpdateValue) {
@@ -205,15 +224,15 @@ class PaginationCrawler {
                     break;
                 }
                 await asyncSleep(300)
-                afterUpdateValue = await this.ActivePage.$eval('#fieldname1_1', element => element.value);
+                afterUpdateValue = await this.ActivePage.$eval(selectors.price, element => element.value);
             }
 
-            const { finalPrice, advanceAmount, acquisitionValue } = await this.ActivePage.evaluate(() => {
-                const finalPrice = document.querySelector('[name="fieldname1_1"]').value
-                const advanceAmount = document.querySelector('[id="fieldname13_1"]').value
-                const acquisitionValue = document.querySelector('[id="fieldname43_1"]').value || null
+            const { finalPrice, advanceAmount, acquisitionValue } = await this.ActivePage.evaluate((selectors) => {
+                const finalPrice = document.querySelector(selectors.price).value
+                const advanceAmount = document.querySelector(selectors.advancePaymentValue).value
+                const acquisitionValue = document.querySelector(selectors.acquisitionValueAmount).value || null
                 return { finalPrice, advanceAmount, acquisitionValue }
-            })
+            }, selectors)
 
             const data = {
                 duration: `${combination[0]} months`,
@@ -239,9 +258,9 @@ class PaginationCrawler {
         }
 
         // Click on vat again to reset it to original after its done, so that it wont hamper our next run
-        await this.ActivePage.evaluate((vat) => {
-            if (vat) document.querySelector('input[name="fieldname9_1"]').click()
-        }, vat)
+        await this.ActivePage.evaluate((vat, selectors) => {
+            if (vat) document.querySelector(selectors.vatbutton).click()
+        }, vat, selectors)
         return newRecords
     }
 
