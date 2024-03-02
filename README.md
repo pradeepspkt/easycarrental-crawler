@@ -50,3 +50,5 @@ if its CrawlNumberOfItems: null then it will crawl every cars available on the w
 ```
 CrawlNumberOfItems: 1
 ```
+
+NOTE: For data to be saved, CSV and JSON, all data must be crawled. The output files can be seen under folder cars.
