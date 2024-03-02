@@ -140,6 +140,7 @@ class PaginationCrawler {
             selector,
             currentPage
         );
+
     }
 
     async crawlPage(url, selectors) {
@@ -157,6 +158,7 @@ class PaginationCrawler {
 
         const redemptionPricedata = await this.individualPriceParser(selectors, false, true)
         const redemptionPriceWithTaxData = await this.individualPriceParser(selectors, true, true)
+
         const redemptionMergedData = await this.mergeArrays(redemptionPricedata, redemptionPriceWithTaxData, true);
 
         const data = {
@@ -261,6 +263,7 @@ class PaginationCrawler {
         await this.ActivePage.evaluate((vat, selectors) => {
             if (vat) document.querySelector(selectors.vatbutton).click()
         }, vat, selectors)
+
         return newRecords
     }
 

@@ -19,6 +19,7 @@ async function easyCarRentalCrawler() {
         OutputOptions: {
             saveAsJSON: true,
             saveAsCSV: false
+
         }
     });
 
