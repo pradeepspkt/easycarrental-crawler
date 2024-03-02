@@ -1,0 +1,21 @@
+{
+  "name": "easy-car-rental",
+  "version": "1.0.0",
+  "description": "easy car rental scraper",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "crawl:ecr": "node crawlers/easyCarRental/crawler.js"
+  },
+  "author": "pradeep sapkota",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.4.5",
+    "fs": "^0.0.1-security",
+    "json-2-csv": "^5.4.0",
+    "modern-async": "^2.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
