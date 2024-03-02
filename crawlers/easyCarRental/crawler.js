@@ -18,9 +18,10 @@ async function easyCarRentalCrawler() {
         },
         OutputOptions: {
             saveAsJSON: true,
-            saveAsCSV: false
-
-        }
+            saveAsCSV: true
+        },
+        // You can define any specific number of cars to crawl here, put the value to null if you want all cars to be scraped.
+        CrawlNumberOfItems: null
     });
 
     await ECRCrawler.initialize();

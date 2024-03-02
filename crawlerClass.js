@@ -25,6 +25,7 @@ class PaginationCrawler {
         saveAsCSV: false
     }
     ConfigOptions = null
+    CrawlNumberOfItems = null
 
     /**
      * 
@@ -37,6 +38,7 @@ class PaginationCrawler {
      * @param {String} options.URL Generates cookies using puppeteer.
      * @param {Object} options.OutputOptions Output options either to save as JSON/CSV
      * @param {Object} options.ConfigOptions Config options
+     * @param {string} options.CrawlNumberOfItems Config to number of items to crawl
 
      */
     constructor(options) {
@@ -47,6 +49,7 @@ class PaginationCrawler {
             ...options.PuppeteerSettings
         };
         this.URL = options.URL
+        if (options.CrawlNumberOfItems) this.CrawlNumberOfItems = options.CrawlNumberOfItems
 
         if (options.OutputOptions) this.OutputOptions = {
             ...this.OutputOptions,
@@ -103,7 +106,8 @@ class PaginationCrawler {
     async crawlPaginatedList() {
         let urls = await this.getURLs()
         const newRecords = []
-        for (const url of urls) {
+        for (const [index, url] of urls.entries()) {
+            if (this.CrawlNumberOfItems && index + 1 > this.CrawlNumberOfItems) break;
             const data = await this.crawlPage(url, this.Selectors);
             newRecords.push(data);
         }
@@ -354,7 +358,7 @@ class PaginationCrawler {
 
         const fileName = `${csvPath}/${new Date().getTime()}.csv`
         await fs.mkdir(csvPath, { recursive: true });
-        const csv = converter.json2csv(json);
+        const csv = converter.json2csv(json, { expandNestedObjects: true });
         await fs.writeFile(fileName, csv);
         console.log(`Saved CSV to ${csvPath} with filename: ${fileName}`)
     }
